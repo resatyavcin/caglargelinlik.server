@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 async function databaseConnection() {
   try {
     await mongoose.connect(process.env.DB_STRING);
-    console.log("MongoDB'ye başarı ile bağlanılamadı");
+    console.log("MongoDB'ye başarı ile bağlanıldı");
   } catch (error) {
     console.log("MongoDB'ye Bağlanılamadı");
   }
