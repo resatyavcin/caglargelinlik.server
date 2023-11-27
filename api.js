@@ -8,5 +8,6 @@ app.get('/', (req, res) => {
 });
 
 app.use('/auth', routes.userRoutes);
+app.use('/product', routes.productRoutes);
 
 module.exports = app;

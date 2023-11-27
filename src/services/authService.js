@@ -1,6 +1,5 @@
 const userService = require('./userService');
 const bcrypt = require('bcryptjs');
-const UserModel = require('../models/User');
 
 module.exports = {
   signup: async function (props) {

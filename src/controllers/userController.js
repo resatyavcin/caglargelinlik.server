@@ -1,14 +1,8 @@
 const { authService } = require('../services');
+const { responseJSON } = require('../utils');
 const status = require('http-status');
 
-function responseJSON(status, message) {
-  return {
-    status,
-    message,
-  };
-}
-
-async function createUser(req, res) {
+async function createUser(req, res, next) {
   const { username, password, role } = req.body;
   try {
     const user = await authService.signup({ username, password, role });
@@ -18,11 +12,11 @@ async function createUser(req, res) {
       status: responseJSON(status[201], status['201_MESSAGE']),
     });
   } catch (error) {
-    return res.json(responseJSON(status[500], error.message));
+    next(error);
   }
 }
 
-async function login(req, res) {
+async function login(req, res, next) {
   const { username, password } = req.body;
 
   try {
@@ -35,11 +29,11 @@ async function login(req, res) {
       status: responseJSON(status[200], status['200_MESSAGE']),
     });
   } catch (error) {
-    return res.json(responseJSON(status[500], error.message));
+    next(error);
   }
 }
 
-async function logout(req, res) {
+async function logout(req, res, next) {
   req.session.userId = null;
 
   try {
@@ -47,7 +41,7 @@ async function logout(req, res) {
       status: responseJSON(status[200], status['200_MESSAGE']),
     });
   } catch (error) {
-    return res.json(responseJSON(status[500], error.message));
+    next(error);
   }
 }
 
