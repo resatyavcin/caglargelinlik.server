@@ -7,6 +7,10 @@ const express = require('express');
 const winston = require('winston');
 const cookieSession = require('cookie-session');
 const status = require('http-status');
+const moment = require('moment');
+
+require('moment/locale/tr');
+moment.locale('tr');
 
 const { ValidationError } = require('express-validation');
 

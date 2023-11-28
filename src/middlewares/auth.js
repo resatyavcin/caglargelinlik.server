@@ -1,18 +1,13 @@
 const status = require('http-status');
+const { responseJSON } = require('../utils');
 
-function responseJSON(status, message) {
-  return {
-    status,
-    message,
-  };
-}
 module.exports = {
-  authMiddleware: function (requiredRole) {
+  authMiddleware: function (requiredRoles = []) {
     return function (req, res, next) {
       if (
-        req.session &&
-        req.session.userId &&
-        req.session.user.role === requiredRole
+        req.session.user &&
+        req.session.user.id &&
+        requiredRoles.includes(req.session.user.role)
       ) {
         return next();
       } else {

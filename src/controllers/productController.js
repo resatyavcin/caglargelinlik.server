@@ -76,39 +76,71 @@ async function getProductCount(req, res, next) {
   }
 }
 
-async function updateProduct(req, res, next) {
+async function rentProduct(req, res, next) {
   try {
     const productId = req.params.productId;
-    const product = await ProductModel.findById(productId);
-
-    if (!product) {
-      return res.status(404).json({ message: 'Ürün bulunamadı' });
-    }
-    const wasFirstHand = product.isSecondHand === false;
-
-    if (wasFirstHand) {
-      if (req.body.isRentable && req.body.isReturned) {
-        product.isSecondHand = true;
-      } else if (req.body.isRentable && req.body.isGiven) {
-        product.isActive = true;
-      } else if (req.body.isForSale) {
-        product.isSold = true;
-      }
-    } else {
-      if (req.body.isRentable && req.body.isReturned) {
-        product.isActive = false;
-      } else if (req.body.isRentable && req.body.isGiven) {
-        product.isActive = true;
-      } else if (req.body.isForSale) {
-        product.isSold = true;
-      }
-    }
-
-    await productService.update({});
+    const updatedProduct = await productService.rentProduct(productId);
 
     res.status(200).json({
       status: responseJSON(status[200], status['200_MESSAGE']),
-      result: product,
+      result: updatedProduct,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function receivingTheRentedProductBack(req, res, next) {
+  try {
+    const productId = req.params.productId;
+    const updatedProduct =
+      await productService.receivingTheRentedProductBack(productId);
+
+    res.status(200).json({
+      status: responseJSON(status[200], status['200_MESSAGE']),
+      result: updatedProduct,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function cancelRentProduct(req, res, next) {
+  try {
+    const productId = req.params.productId;
+    const updatedProduct = await productService.cancelRentProduct(productId);
+
+    res.status(200).json({
+      status: responseJSON(status[200], status['200_MESSAGE']),
+      result: updatedProduct,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function sellProduct(req, res, next) {
+  try {
+    const productId = req.params.productId;
+    const updatedProduct = await productService.sellProduct(productId);
+
+    res.status(200).json({
+      status: responseJSON(status[200], status['200_MESSAGE']),
+      result: updatedProduct,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function cancelSellProduct(req, res, next) {
+  try {
+    const productId = req.params.productId;
+    const updatedProduct = await productService.cancelSellProduct(productId);
+
+    res.status(200).json({
+      status: responseJSON(status[200], status['200_MESSAGE']),
+      result: updatedProduct,
     });
   } catch (error) {
     next(error);
@@ -132,7 +164,11 @@ async function deleteProduct(req, res, next) {
 module.exports = {
   createProduct,
   getProducts,
-  updateProduct,
+  rentProduct,
+  receivingTheRentedProductBack,
+  cancelRentProduct,
+  sellProduct,
+  cancelSellProduct,
   deleteProduct,
   getProductNames,
   getProductCount,
