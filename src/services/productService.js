@@ -1,5 +1,5 @@
 const ProductModel = require('../models/Product');
-const { findByIdAndDelete } = require('../models/User');
+const moment = require('moment');
 
 module.exports = {
   create: async function ({ code, name, isSecondHand, isSold, isActive }) {
@@ -14,7 +14,12 @@ module.exports = {
     return product.save();
   },
 
-  findProducts: async function ({ code, where, options, paginable = false }) {
+  findProducts: async function ({
+    code,
+    where,
+    options = {},
+    paginable = false,
+  }) {
     let currentWhereQuery = {};
     let isPaginate = paginable;
     let products;
@@ -43,12 +48,12 @@ module.exports = {
     let queryBuilder = ProductModel.find(query);
 
     if (isPaginate) {
-      queryBuilder = await queryBuilder
+      queryBuilder = queryBuilder
         .skip((currentPage - 1) * perPage)
         .limit(perPage);
     }
 
-    products = queryBuilder;
+    products = await queryBuilder;
 
     if (!products) {
       throw new Error('Ürün bulunamadı');
@@ -74,17 +79,103 @@ module.exports = {
     return countProduct;
   },
 
-  update: async function ({ id, props }) {
+  rentProduct: async function (id) {
     const product = await this.findProducts({
-      where: { property: _id, propResult: id },
+      where: { property: '_id', propResult: id },
     });
 
-    const { code, ...rest } = props;
+    if (product.isSold) {
+      throw new Error('Satılan ürün kiralanamaz.');
+    }
 
-    Object.assign(product, rest);
+    if (!product.isActive) {
+      throw new Error('Ürün boşta değildir.');
+    }
+    product.isRent = true;
+    product.isActive = false;
+
+    if (!product.isSecondHand) {
+      product.isSecondHand = true;
+    }
+    product.rentDate.push(moment().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]'));
 
     await product.save();
+    return product;
   },
+
+  cancelRentProduct: async function (id) {
+    const product = await this.findProducts({
+      where: { property: '_id', propResult: id },
+    });
+
+    product.isRent = false;
+    product.isActive = true;
+
+    if (product.rentDate.length >= 0) {
+      product.rentDate.pop();
+    }
+    await product.save();
+    return product;
+  },
+
+  receivingTheRentedProductBack: async function (id) {
+    const product = await this.findProducts({
+      where: { property: '_id', propResult: id },
+    });
+
+    if (!product.isSold && product.isRent) {
+      product.isRent = false;
+      product.isActive = true;
+    }
+    await product.save();
+    return product;
+  },
+
+  sellProduct: async function (id) {
+    const product = await this.findProducts({
+      where: { property: '_id', propResult: id },
+    });
+
+    if (!product.isActive) {
+      throw new Error('Ürün boşta değildir.');
+    }
+    product.isSold = true;
+    product.isRent = false;
+    product.isActive = false;
+
+    if (!product.isSecondHand) {
+      product.isSecondHand = true;
+    }
+
+    product.soldDate = moment().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]');
+
+    await product.save();
+    return product;
+  },
+
+  cancelSellProduct: async function (id) {
+    const product = await this.findProducts({
+      where: { property: '_id', propResult: id },
+    });
+
+    if (!product.isSold) {
+      throw new Error('Ürün satılmamıştır.');
+    }
+
+    product.isSold = false;
+    product.isRent = false;
+    product.isActive = true;
+
+    product.soldDate = undefined;
+
+    if (product.isSecondHand && product.rentDate.length === 0) {
+      product.isSecondHand = true;
+    }
+
+    await product.save();
+    return product;
+  },
+
   delete: async function ({ id }) {
     const product = await ProductModel.findByIdAndDelete(id);
     return product;

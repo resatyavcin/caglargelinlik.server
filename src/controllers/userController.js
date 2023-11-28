@@ -22,7 +22,7 @@ async function login(req, res, next) {
   try {
     const user = await authService.signin({ username, password });
 
-    req.session.userId = { id: user._id, role: user.role };
+    req.session.user = { id: user._id, role: user.role };
 
     return res.status(200).json({
       result: user,

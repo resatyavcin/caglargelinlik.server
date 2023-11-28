@@ -6,7 +6,7 @@ module.exports = {
     return user.save();
   },
 
-  find: async function ({ id, where }) {
+  find: async function ({ id, where = {} }) {
     const { property, propResult } = where;
 
     const user = await UserModel.find({
