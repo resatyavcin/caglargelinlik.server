@@ -14,5 +14,10 @@ app.use(
   authMiddleware(['Admin', 'SalesConsultant']),
   routes.productRoutes,
 );
+app.use(
+  '/customer',
+  authMiddleware(['Admin', 'SalesConsultant']),
+  routes.customerRoutes,
+);
 
 module.exports = app;

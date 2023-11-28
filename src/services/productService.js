@@ -42,7 +42,7 @@ module.exports = {
     }
 
     if (currentPage > totalPageCount || currentPage < 1) {
-      throw new Error('Geçersiz Sayfa Numarası');
+      return [];
     }
 
     let queryBuilder = ProductModel.find(query);
@@ -60,8 +60,9 @@ module.exports = {
       return;
     }
 
-    return products.length > 1 ? products : products[0];
+    return products.length > 1 ? products : products[0] || [];
   },
+
   displayProductNames: async function ({ code }) {
     const products = await ProductModel.aggregate([
       { $match: { $and: [{ code, isActive: true }] } },
