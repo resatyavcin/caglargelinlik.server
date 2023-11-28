@@ -1,6 +1,7 @@
 const { responseJSON } = require('../utils');
 const { customerService } = require('../services');
 const status = require('http-status');
+
 async function createCustomer(req, res, next) {
   const { firstName, lastName, primaryPhone, secondaryPhone, address } =
     req.body;
