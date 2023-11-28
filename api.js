@@ -9,10 +9,16 @@ app.get('/', (req, res) => {
 });
 
 app.use('/auth', routes.userRoutes);
+
 app.use(
   '/product',
   authMiddleware(['Admin', 'SalesConsultant']),
   routes.productRoutes,
+);
+app.use(
+  '/booking',
+  authMiddleware(['Admin', 'SalesConsultant']),
+  routes.bookingRoutes,
 );
 app.use(
   '/customer',

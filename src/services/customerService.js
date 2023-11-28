@@ -1,8 +1,20 @@
 const CustomerModel = require('../models/Costumer');
 
 module.exports = {
-  create: function ({ username, password, role }) {
-    const customer = new CustomerModel({ username, password, role });
+  create: function ({
+    firstName,
+    lastName,
+    primaryPhone,
+    secondaryPhone,
+    address,
+  }) {
+    const customer = new CustomerModel({
+      firstName,
+      lastName,
+      primaryPhone,
+      secondaryPhone,
+      address,
+    });
     return customer.save();
   },
 
