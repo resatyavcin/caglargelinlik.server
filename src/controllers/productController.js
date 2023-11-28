@@ -3,7 +3,7 @@ const { responseJSON } = require('../utils');
 const { productService } = require('../services');
 
 async function createProduct(req, res, next) {
-  const { code, name, quantity, isSecondHand, isSold } = req.body;
+  const { code, name, quantity, isSecondHand, isSold, isActive } = req.body;
   try {
     const product = await productService.create({
       code,
@@ -11,6 +11,7 @@ async function createProduct(req, res, next) {
       quantity,
       isSecondHand,
       isSold,
+      isActive,
     });
 
     return res.status(201).json({
@@ -29,6 +30,7 @@ async function getProducts(req, res, next) {
     const products = await productService.findProducts({
       code: productCode,
       options: { currentPage, perPage },
+      paginable: true,
     });
 
     return res.status(200).json({
@@ -42,12 +44,10 @@ async function getProducts(req, res, next) {
 
 async function getProductNames(req, res, next) {
   const { productCode } = req.params;
-  const { productName } = req.query;
 
   try {
     const products = await productService.displayProductNames({
       code: productCode,
-      name: productName,
     });
     return res.status(200).json({
       result: products,
@@ -60,10 +60,12 @@ async function getProductNames(req, res, next) {
 
 async function getProductCount(req, res, next) {
   const { productCode } = req.params;
+  const { productName } = req.query;
 
   try {
     const productsLength = await productService.getCountProductAsCodeAndName({
       code: productCode,
+      name: productName,
     });
     return res.status(200).json({
       result: productsLength,
@@ -102,7 +104,7 @@ async function updateProduct(req, res, next) {
       }
     }
 
-    await product.save();
+    await productService.update({});
 
     res.status(200).json({
       status: responseJSON(status[200], status['200_MESSAGE']),
@@ -113,9 +115,13 @@ async function updateProduct(req, res, next) {
   }
 }
 
-function deleteProduct(req, res, next) {
+async function deleteProduct(req, res, next) {
+  const productId = req.params.productId;
+
   try {
+    const deletedProduct = await productService.delete({ id: productId });
     return res.status(200).json({
+      result: deletedProduct,
       status: responseJSON(status[200], status['200_MESSAGE']),
     });
   } catch (error) {
