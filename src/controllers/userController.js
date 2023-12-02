@@ -34,10 +34,11 @@ async function login(req, res, next) {
 }
 
 async function logout(req, res, next) {
-  req.session.userId = null;
+  req.session = null;
 
   try {
     return res.status(200).json({
+      result: req.session,
       status: responseJSON(status[200], status['200_MESSAGE']),
     });
   } catch (error) {

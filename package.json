@@ -6,12 +6,15 @@
   "scripts": {
     "format": "prettier --write \"src/**/*.js\"",
     "start:dev": "cross-env NODE_ENV=development nodemon server.js",
-    "start:prod": "cross-env NODE_ENV=production node server.js"
+    "start:prod": "cross-env NODE_ENV=production node server.js",
+    "test": "mocha src/test/**/*.js"
   },
   "author": "resatyavcin",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "chai": "^4.3.10",
+    "cookie-parser": "^1.4.6",
     "cookie-session": "^2.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
@@ -19,6 +22,7 @@
     "express-winston": "^4.2.0",
     "http-status": "^1.7.3",
     "keygrip": "^1.1.0",
+    "mocha": "^10.2.0",
     "moment": "^2.29.4",
     "mongoose": "^8.0.1",
     "winston": "^3.11.0"

@@ -4,10 +4,11 @@ const { responseJSON } = require('../utils');
 module.exports = {
   authMiddleware: function (requiredRoles = []) {
     return function (req, res, next) {
+      console.log(req.session);
       if (
         req.session.user &&
-        req.session.user.id &&
-        requiredRoles.includes(req.session.user.role)
+        req.session.user?.id &&
+        requiredRoles.includes(req.session.user?.role)
       ) {
         return next();
       } else {
