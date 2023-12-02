@@ -1,9 +1,15 @@
 const mongoose = require('mongoose');
+const { EventTypeEnum } = require('../utils');
 
 const schema = new mongoose.Schema(
   {
     customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+
+    eventType: {
+      type: String,
+      enum: Object.values(EventTypeEnum),
+    },
 
     primaryTrialDate: { type: Date },
     secondaryTrialDate: { type: Date },
@@ -13,14 +19,10 @@ const schema = new mongoose.Schema(
       departureDate: { type: Date },
       arrivalDate: { type: Date },
     },
-    eventType: {
-      type: String,
-      enum: ['KOD_1', 'KOD_2', 'KOD_3'],
-    },
+
     eventDate: { type: Date },
     productDeliveryDate: { type: Date },
     productReturnDate: { type: Date },
-    isReturned: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

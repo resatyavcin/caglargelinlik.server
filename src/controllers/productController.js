@@ -25,12 +25,14 @@ async function createProduct(req, res, next) {
 
 async function getProducts(req, res, next) {
   const { productCode } = req.params;
-  const { currentPage, perPage } = req.query;
+  const { productName } = req.query;
   try {
     const products = await productService.findProducts({
       code: productCode,
-      options: { currentPage, perPage },
-      paginable: true,
+      options: {
+        findMethod: '$and',
+      },
+      where: { property: 'name', propResult: productName },
     });
 
     return res.status(200).json({
@@ -44,7 +46,6 @@ async function getProducts(req, res, next) {
 
 async function getProductNames(req, res, next) {
   const { productCode } = req.params;
-
   try {
     const products = await productService.displayProductNames({
       code: productCode,

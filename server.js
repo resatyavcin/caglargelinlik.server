@@ -4,15 +4,14 @@ if (process.env.NODE_ENV !== 'production') {
 
 const mongoose = require('mongoose');
 const express = require('express');
-const winston = require('winston');
 const cookieSession = require('cookie-session');
 const status = require('http-status');
 const moment = require('moment');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 require('moment/locale/tr');
 moment.locale('tr');
-
-const { ValidationError } = require('express-validation');
 
 const app = require('./api');
 const { responseJSON } = require('./src/utils');
@@ -31,23 +30,27 @@ async function databaseConnection() {
 }
 
 server.use(
+  cors({
+    origin: 'http://localhost:3000', // Sadece bu origin'e izin ver
+    credentials: true, // Cookie'lerin gönderilmesine izin ver
+  }),
+);
+
+server.use(cookieParser());
+server.use(
   cookieSession({
     name: 'session',
+
+    httpOnly: false,
+    secure: false,
     keys: [
       process.env.SESSION_SECRET_KEY_ONE,
       process.env.SESSION_SECRET_KEY_TWO,
     ],
+
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   }),
 );
-
-server.use(function (err, req, res, next) {
-  if (err instanceof ValidationError) {
-    return res.status(err.statusCode).json(err);
-  }
-
-  return res.status(500).json(err);
-});
 
 server.use(express.json());
 server.use('/v1', app);

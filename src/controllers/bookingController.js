@@ -1,6 +1,7 @@
 const BookingModel = require('../models/Booking');
+const { productService } = require('../services');
 
-const { responseJSON } = require('../utils');
+const { responseJSON, checkDateOrder, formatDate } = require('../utils');
 const status = require('http-status');
 
 async function createBooking(req, res, next) {
@@ -10,12 +11,13 @@ async function createBooking(req, res, next) {
     primaryTrialDate,
     secondaryTrialDate,
     isPackage,
-    packageDetails,
-    eventType,
+    packageDetails = {},
     eventDate,
     productDeliveryDate,
     productReturnDate,
   } = req.body;
+
+  const { eventType, productTakeType } = req.query;
 
   try {
     const booking = new BookingModel({
@@ -30,6 +32,32 @@ async function createBooking(req, res, next) {
       productDeliveryDate,
       productReturnDate,
     });
+
+    const { departureDate, arrivalDate } = packageDetails;
+
+    await checkDateOrder([
+      primaryTrialDate,
+      secondaryTrialDate,
+      eventDate,
+      productReturnDate,
+    ]);
+
+    await checkDateOrder([
+      primaryTrialDate,
+      secondaryTrialDate,
+      productDeliveryDate,
+      productReturnDate,
+    ]);
+
+    const a = await checkDateOrder([departureDate, arrivalDate]);
+
+    if (productTakeType === 'rent') {
+      await productService.rentProduct(product);
+    }
+
+    if (productTakeType === 'sell') {
+      await productService.sellProduct(product);
+    }
 
     await BookingModel.create(booking);
 

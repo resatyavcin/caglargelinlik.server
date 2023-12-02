@@ -17,11 +17,9 @@ module.exports = {
   findProducts: async function ({
     code,
     where,
-    options = {},
-    paginable = false,
+    options = { findMethod: '$or' },
   }) {
     let currentWhereQuery = {};
-    let isPaginate = paginable;
     let products;
 
     if (where) {
@@ -29,29 +27,16 @@ module.exports = {
     }
 
     const { property, propResult } = currentWhereQuery;
-    const { currentPage, perPage } = options;
-
-    const countProduct = await ProductModel.countDocuments();
-    const totalPageCount = Math.ceil(countProduct / perPage);
+    const { findMethod } = options;
 
     const query = {};
-    query.$or = [{ code }];
+    query[findMethod] = [{ code }];
 
     if (property) {
-      query.$or.push({ [property]: propResult });
-    }
-
-    if (currentPage > totalPageCount || currentPage < 1) {
-      return [];
+      query[findMethod].push({ [property]: propResult });
     }
 
     let queryBuilder = ProductModel.find(query);
-
-    if (isPaginate) {
-      queryBuilder = queryBuilder
-        .skip((currentPage - 1) * perPage)
-        .limit(perPage);
-    }
 
     products = await queryBuilder;
 
@@ -60,12 +45,12 @@ module.exports = {
       return;
     }
 
-    return products.length > 1 ? products : products[0] || [];
+    return products || [];
   },
 
   displayProductNames: async function ({ code }) {
     const products = await ProductModel.aggregate([
-      { $match: { $and: [{ code, isActive: true }] } },
+      { $match: { $and: [{ code }] } },
       { $group: { _id: '$name' } },
       { $project: { _id: 0, productName: '$_id' } },
     ]);
@@ -81,9 +66,11 @@ module.exports = {
   },
 
   rentProduct: async function (id) {
-    const product = await this.findProducts({
+    let product = await this.findProducts({
       where: { property: '_id', propResult: id },
     });
+
+    product = product[0];
 
     if (product.isSold) {
       throw new Error('Satılan ürün kiralanamaz.');
@@ -105,9 +92,11 @@ module.exports = {
   },
 
   cancelRentProduct: async function (id) {
-    const product = await this.findProducts({
+    let product = await this.findProducts({
       where: { property: '_id', propResult: id },
     });
+
+    product = product[0];
 
     product.isRent = false;
     product.isActive = true;
@@ -120,9 +109,11 @@ module.exports = {
   },
 
   receivingTheRentedProductBack: async function (id) {
-    const product = await this.findProducts({
+    let product = await this.findProducts({
       where: { property: '_id', propResult: id },
     });
+
+    product = product[0];
 
     if (!product.isSold && product.isRent) {
       product.isRent = false;
@@ -133,9 +124,11 @@ module.exports = {
   },
 
   sellProduct: async function (id) {
-    const product = await this.findProducts({
+    let product = await this.findProducts({
       where: { property: '_id', propResult: id },
     });
+
+    product = product[0];
 
     if (!product.isActive) {
       throw new Error('Ürün boşta değildir.');
@@ -155,9 +148,11 @@ module.exports = {
   },
 
   cancelSellProduct: async function (id) {
-    const product = await this.findProducts({
+    let product = await this.findProducts({
       where: { property: '_id', propResult: id },
     });
+
+    product = product[0];
 
     if (!product.isSold) {
       throw new Error('Ürün satılmamıştır.');
@@ -178,7 +173,9 @@ module.exports = {
   },
 
   delete: async function ({ id }) {
-    const product = await ProductModel.findByIdAndDelete(id);
+    let product = await ProductModel.findByIdAndDelete(id);
+    product = product[0];
+
     return product;
   },
 };
