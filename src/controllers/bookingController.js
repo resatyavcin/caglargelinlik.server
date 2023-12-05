@@ -3,11 +3,12 @@ const { productService } = require('../services');
 
 const { responseJSON, checkDateOrder, formatDate } = require('../utils');
 const status = require('http-status');
+const { v4: uuidv4, parse } = require('uuid');
+const { BSON, ObjectId } = require('bson');
 
 async function createBooking(req, res, next) {
   const {
     customer,
-    product,
     primaryTrialDate,
     secondaryTrialDate,
     isPackage,
@@ -15,6 +16,7 @@ async function createBooking(req, res, next) {
     eventDate,
     productDeliveryDate,
     productReturnDate,
+    productName,
   } = req.body;
 
   const { eventType, productTakeType } = req.query;
@@ -22,17 +24,17 @@ async function createBooking(req, res, next) {
   try {
     const booking = new BookingModel({
       customer,
-      product,
       primaryTrialDate,
       secondaryTrialDate,
       isPackage,
-      packageDetails,
       eventType,
       eventDate,
       productDeliveryDate,
       productReturnDate,
     });
 
+    let product;
+    const uuid = uuidv4();
     const { departureDate, arrivalDate } = packageDetails;
 
     await checkDateOrder([
@@ -49,17 +51,23 @@ async function createBooking(req, res, next) {
       productReturnDate,
     ]);
 
-    const a = await checkDateOrder([departureDate, arrivalDate]);
+    await checkDateOrder([departureDate, arrivalDate]);
 
     if (productTakeType === 'rent') {
-      await productService.rentProduct(product);
+      product = await productService.rentProduct({
+        booking: uuid,
+        name: productName,
+        code: eventType,
+        startDate: productDeliveryDate,
+        endDate: productReturnDate,
+      });
     }
 
     if (productTakeType === 'sell') {
-      await productService.sellProduct(product);
+      // await productService.sellProduct(product);
     }
 
-    await BookingModel.create(booking);
+    await BookingModel.create({ ...booking, product, extrauuid: uuid });
 
     return res.status(201).json({
       result: booking,

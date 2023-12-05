@@ -18,25 +18,14 @@ module.exports = {
     return customer.save();
   },
 
-  findCustomers: async function ({
-    id,
-    where,
-    options = {},
-    paginable = false,
-  }) {
+  findCustomers: async function ({ id, where }) {
     let currentWhereQuery = {};
-    let isPaginate = paginable;
-    let customers;
 
     if (where) {
       currentWhereQuery = where;
     }
 
     const { property, propResult } = currentWhereQuery;
-    const { currentPage, perPage } = options;
-
-    const countCustomer = await CustomerModel.countDocuments();
-    const totalPageCount = Math.ceil(countCustomer / perPage);
 
     const query = {};
     query.$or = [id ? { _id: id } : {}];
@@ -45,26 +34,14 @@ module.exports = {
       query.$or.push({ [property]: propResult });
     }
 
-    if (currentPage > totalPageCount || currentPage < 1) {
-      return [];
-    }
+    const customers = await CustomerModel.find(query);
 
-    let queryBuilder = CustomerModel.find(query);
-
-    if (isPaginate) {
-      queryBuilder = queryBuilder
-        .skip((currentPage - 1) * perPage)
-        .limit(perPage);
-    }
-
-    customers = await queryBuilder;
-
-    if (!customers) {
+    if (customers.length < 0) {
       throw new Error('Müşteri bulunamadı');
       return;
     }
 
-    return customers.length > 1 ? customers : customers[0] || [];
+    return customers || [];
   },
 
   delete: async function ({ id }) {

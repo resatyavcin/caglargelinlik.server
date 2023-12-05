@@ -25,12 +25,10 @@ async function createCustomer(req, res, next) {
 }
 
 async function findCustomers(req, res, next) {
-  const { currentPage, perPage, customerId } = req.query;
+  const { customerId } = req.query;
   try {
     const customers = await customerService.findCustomers({
       id: customerId,
-      options: { currentPage, perPage },
-      paginable: true,
     });
 
     return res.status(200).json({
