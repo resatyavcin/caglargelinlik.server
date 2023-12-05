@@ -5,7 +5,7 @@ const schema = new mongoose.Schema(
   {
     customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-
+    extrauuid: { type: String, unique: true },
     eventType: {
       type: String,
       enum: Object.values(EventTypeEnum),
@@ -14,15 +14,7 @@ const schema = new mongoose.Schema(
     primaryTrialDate: { type: Date },
     secondaryTrialDate: { type: Date },
 
-    isPackage: { type: Boolean },
-    packageDetails: {
-      departureDate: { type: Date },
-      arrivalDate: { type: Date },
-    },
-
     eventDate: { type: Date },
-    productDeliveryDate: { type: Date },
-    productReturnDate: { type: Date },
   },
   { timestamps: true },
 );

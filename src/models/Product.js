@@ -8,13 +8,29 @@ const schema = new mongoose.Schema(
       enum: Object.values(ProductCodeEnum),
       required: true,
     },
+
     name: { type: String, required: true },
+
+    firstStatusSecondHand: { type: Boolean, required: true },
     isSecondHand: { type: Boolean, required: true },
+
     isSold: { type: Boolean, required: true, default: false },
-    isRent: { type: Boolean, required: true, default: false },
-    isActive: { type: Boolean, required: true, default: true },
     soldDate: Date,
-    rentDate: [Date],
+
+    rentHistory: [
+      {
+        isPackage: { type: Boolean },
+        isReturn: { type: Boolean },
+        booking: { type: String },
+
+        packageDetails: {
+          departureDate: { type: Date },
+          arrivalDate: { type: Date },
+        },
+        productDeliveryDate: { type: Date },
+        productReturnDate: { type: Date },
+      },
+    ],
   },
   { timestamps: true },
 );

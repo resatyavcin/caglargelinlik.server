@@ -3,15 +3,12 @@ const { responseJSON } = require('../utils');
 const { productService } = require('../services');
 
 async function createProduct(req, res, next) {
-  const { code, name, quantity, isSecondHand, isSold, isActive } = req.body;
+  const { code, name, isSecondHand } = req.body;
   try {
     const product = await productService.create({
       code,
       name,
-      quantity,
       isSecondHand,
-      isSold,
-      isActive,
     });
 
     return res.status(201).json({
@@ -59,28 +56,20 @@ async function getProductNames(req, res, next) {
   }
 }
 
-async function getProductCount(req, res, next) {
-  const { productCode } = req.params;
-  const { productName } = req.query;
-
-  try {
-    const productsLength = await productService.getCountProductAsCodeAndName({
-      code: productCode,
-      name: productName,
-    });
-    return res.status(200).json({
-      result: productsLength,
-      status: responseJSON(status[200], status['200_MESSAGE']),
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
 async function rentProduct(req, res, next) {
   try {
-    const productId = req.params.productId;
-    const updatedProduct = await productService.rentProduct(productId);
+    const productCode = req.params.productCode;
+    const { productName } = req.query;
+
+    const { isPackage, startDate, endDate } = req.body;
+
+    const updatedProduct = await productService.rentProduct({
+      code: productCode,
+      name: productName,
+      startDate,
+      endDate,
+      isPackage,
+    });
 
     res.status(200).json({
       status: responseJSON(status[200], status['200_MESSAGE']),
@@ -93,9 +82,10 @@ async function rentProduct(req, res, next) {
 
 async function receivingTheRentedProductBack(req, res, next) {
   try {
-    const productId = req.params.productId;
-    const updatedProduct =
-      await productService.receivingTheRentedProductBack(productId);
+    const booking = req.query.booking;
+    const updatedProduct = await productService.receivingTheRentedProductBack({
+      booking,
+    });
 
     res.status(200).json({
       status: responseJSON(status[200], status['200_MESSAGE']),
@@ -108,8 +98,8 @@ async function receivingTheRentedProductBack(req, res, next) {
 
 async function cancelRentProduct(req, res, next) {
   try {
-    const productId = req.params.productId;
-    const updatedProduct = await productService.cancelRentProduct(productId);
+    const booking = req.query.booking;
+    const updatedProduct = await productService.cancelRentProduct({ booking });
 
     res.status(200).json({
       status: responseJSON(status[200], status['200_MESSAGE']),
@@ -172,5 +162,4 @@ module.exports = {
   cancelSellProduct,
   deleteProduct,
   getProductNames,
-  getProductCount,
 };

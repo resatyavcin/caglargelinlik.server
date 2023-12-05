@@ -1,4 +1,6 @@
 const moment = require('moment');
+const momentRange = require('moment-range');
+momentRange.extendMoment(moment);
 
 function responseJSON(status, message) {
   return {
@@ -21,7 +23,7 @@ const EventTypeEnum = Object.freeze({
 
 function checkDateOrder(dates) {
   return new Promise((resolve, reject) => {
-    for (let i = 0; i < dates.length; i++) {
+    for (let i = 0; i < dates.length - 1; i++) {
       let currentMoment;
       let nextMoment;
       if (dates[i]) {
@@ -40,6 +42,25 @@ function checkDateOrder(dates) {
   });
 }
 
+function isDateRangeIntersection(date1, date2, startDate, endDate) {
+  const momentDate1 = moment(date1);
+  const momentDate2 = moment(date2);
+  const momentStartDate = moment(startDate);
+  const momentEndDate = moment(endDate);
+
+  const isOverlap =
+    (momentDate1.isSameOrAfter(momentStartDate) &&
+      momentDate1.isBefore(momentEndDate)) ||
+    (momentDate2.isSameOrAfter(momentStartDate) &&
+      momentDate2.isBefore(momentEndDate)) ||
+    (momentStartDate.isSameOrAfter(momentDate1) &&
+      momentStartDate.isBefore(momentDate2)) ||
+    (momentEndDate.isSameOrAfter(momentDate1) &&
+      momentEndDate.isBefore(momentDate2));
+
+  return isOverlap;
+}
+
 function formatDate(date) {
   moment(date).format('YYYY-MM-DDTHH:mm:ss.SSS[Z]');
 }
@@ -50,4 +71,5 @@ module.exports = {
   checkDateOrder,
   EventTypeEnum,
   formatDate,
+  isDateRangeIntersection,
 };

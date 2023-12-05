@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "bson": "^6.2.0",
     "chai": "^4.3.10",
     "cookie-parser": "^1.4.6",
     "cookie-session": "^2.0.0",
@@ -21,10 +22,13 @@
     "express-validation": "^4.1.0",
     "express-winston": "^4.2.0",
     "http-status": "^1.7.3",
+    "jsonwebtoken": "^9.0.2",
     "keygrip": "^1.1.0",
     "mocha": "^10.2.0",
     "moment": "^2.29.4",
+    "moment-range": "^4.0.2",
     "mongoose": "^8.0.1",
+    "uuid": "^9.0.1",
     "winston": "^3.11.0"
   },
   "devDependencies": {

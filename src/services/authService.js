@@ -1,5 +1,6 @@
 const userService = require('./userService');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 module.exports = {
   signup: async function (props) {
@@ -34,14 +35,18 @@ module.exports = {
       throw new Error('Kullanıcı bulunmamaktadır.');
     }
 
+    const token = jwt.sign(
+      { username: findUser.username },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: '1d' },
+    );
+
     const isMatchPassword = bcrypt.compareSync(password, findUser.password);
 
     if (!isMatchPassword) {
       throw new Error('Parola Eşleşmedi.');
     }
 
-    return findUser;
+    return { user: findUser, token };
   },
-
-  logout: async function (props) {},
 };

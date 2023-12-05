@@ -1,14 +1,34 @@
 const ProductModel = require('../models/Product');
 const moment = require('moment');
+const { isDateRangeIntersection } = require('../utils');
+
+const uuid = require('uuid');
+const { v4: uuidv4 } = uuid;
+
+function generateUniqueString() {
+  // UUID oluştur
+  const uniqueId = uuidv4();
+
+  // Şu anki zamanı al
+  const currentTime = new Date();
+
+  // Zaman bilgisini stringe çevir ve ekleyerek benzersiz bir string oluştur
+  const uniqueString = `${uniqueId}_${currentTime
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace('.', '')
+    .slice(0, -5)}`;
+
+  return uniqueString;
+}
 
 module.exports = {
-  create: async function ({ code, name, isSecondHand, isSold, isActive }) {
+  create: async function ({ code, name, isSecondHand }) {
     const product = new ProductModel({
       code,
       name,
       isSecondHand,
-      isSold,
-      isActive,
+      firstStatusSecondHand: isSecondHand,
     });
 
     return product.save();
@@ -57,68 +77,190 @@ module.exports = {
     return products.map((prd) => prd.productName);
   },
 
-  getCountProductAsCodeAndName: async function ({ code, name }) {
-    const countProduct = await ProductModel.countDocuments({
-      $and: [{ code }, { name }],
-      isActive: true,
+  rentProduct: async function ({ code, name, startDate, endDate, isPackage }) {
+    let currentProduct;
+
+    if (!name || !code) {
+      throw new Error('Ürün İsmi veya Kod değeri eksik.');
+    }
+
+    if (!startDate || !endDate) {
+      throw new Error('Başlangıç veya bitiş değerleri eksik.');
+    }
+
+    let products = await ProductModel.find({
+      code,
+      name,
     });
-    return countProduct;
+
+    const unSoldProducts = products.filter((product) => {
+      return product.isSold === false;
+    });
+
+    if (unSoldProducts.length === 0) {
+      throw new Error('Bu üründen depoda bulunmamaktadır.');
+    }
+
+    function findAvailableProductAsync(unSoldProducts, startDate, endDate) {
+      return new Promise((resolve, reject) => {
+        const availableProduct = unSoldProducts.find(({ rentHistory }) => {
+          return rentHistory.length === 0
+            ? true
+            : rentHistory.every((obj) => {
+                const {
+                  isPackage,
+                  packageDetails,
+                  productDeliveryDate,
+                  productReturnDate,
+                } = obj;
+
+                if (!isPackage) {
+                  return !isDateRangeIntersection(
+                    startDate,
+                    endDate,
+                    productDeliveryDate,
+                    productReturnDate,
+                  );
+                }
+
+                return !isDateRangeIntersection(
+                  startDate,
+                  endDate,
+                  packageDetails.departureDate,
+                  packageDetails.arrivalDate,
+                );
+              });
+        });
+
+        if (availableProduct) {
+          resolve(availableProduct);
+        } else {
+          reject(new Error('No available product found'));
+        }
+      });
+    }
+
+    const availableProduct = await findAvailableProductAsync(
+      unSoldProducts,
+      startDate,
+      endDate,
+    );
+
+    if (!availableProduct) {
+      throw new Error('Tarih arasında bu ürünler boşta değildir.');
+    }
+
+    currentProduct = availableProduct;
+
+    if (!currentProduct.isSecondHand) {
+      currentProduct.isSecondHand = true;
+    }
+
+    if (isPackage) {
+      currentProduct.rentHistory.push({
+        booking: generateUniqueString(),
+        isPackage: true,
+        packageDetails: {
+          departureDate: startDate,
+          arrivalDate: endDate,
+        },
+      });
+    }
+
+    if (!isPackage) {
+      currentProduct.rentHistory.push({
+        booking,
+        isPackage: false,
+        productDeliveryDate: startDate,
+        productReturnDate: endDate,
+      });
+    }
+
+    await currentProduct.save();
+    return currentProduct;
   },
 
-  rentProduct: async function (id) {
-    let product = await this.findProducts({
-      where: { property: '_id', propResult: id },
+  cancelRentProduct: async function ({ booking }) {
+    let products = await ProductModel.find({}, 'rentHistory');
+
+    if (!booking) {
+      throw new Error('Randevu benzersiz kimlik bulunmamaktadır.');
+    }
+
+    let currentHistory = new Promise((resolve, reject) => {
+      const promises = [];
+
+      products.forEach(({ _id, rentHistory }) => {
+        rentHistory.forEach(async (history) => {
+          if (history.booking === booking) {
+            promises.push(_id);
+          }
+        });
+      });
+
+      if (promises.length > 0) {
+        resolve(promises);
+      } else {
+        reject('No matching product found for the given booking.');
+      }
     });
 
-    product = product[0];
+    const currentHistoryResult = await currentHistory;
 
-    if (product.isSold) {
-      throw new Error('Satılan ürün kiralanamaz.');
+    let product = await ProductModel.findOne({ _id: currentHistoryResult[0] });
+
+    product['rentHistory'] = product?.rentHistory?.filter(
+      (his) => his.booking !== booking,
+    );
+
+    if (!product?.firstStatusSecondHand && product?.rentHistory?.length === 0) {
+      product['isSecondHand'] = false;
     }
-
-    if (!product.isActive) {
-      throw new Error('Ürün boşta değildir.');
-    }
-    product.isRent = true;
-    product.isActive = false;
-
-    if (!product.isSecondHand) {
-      product.isSecondHand = true;
-    }
-    product.rentDate.push(moment().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]'));
-
     await product.save();
     return product;
   },
 
-  cancelRentProduct: async function (id) {
-    let product = await this.findProducts({
-      where: { property: '_id', propResult: id },
+  receivingTheRentedProductBack: async function ({ booking }) {
+    let products = await ProductModel.find({}, 'rentHistory');
+
+    if (!booking) {
+      throw new Error('Randevu benzersiz kimlik bulunmamaktadır.');
+    }
+
+    let currentHistory = new Promise((resolve, reject) => {
+      const promises = [];
+
+      products.forEach(({ _id, rentHistory }) => {
+        rentHistory.forEach(async (history) => {
+          if (history.booking === booking) {
+            promises.push(_id);
+          }
+        });
+      });
+
+      if (promises.length > 0) {
+        resolve(promises);
+      } else {
+        reject('No matching product found for the given booking.');
+      }
     });
 
-    product = product[0];
+    const currentHistoryResult = await currentHistory;
 
-    product.isRent = false;
-    product.isActive = true;
+    let product = await ProductModel.findOne({ _id: currentHistoryResult[0] });
 
-    if (product.rentDate.length >= 0) {
-      product.rentDate.pop();
-    }
-    await product.save();
-    return product;
-  },
+    product['rentHistory'] = product?.rentHistory?.map((his) => {
+      if (his.booking === booking) {
+        his.isReturn = true;
+      }
 
-  receivingTheRentedProductBack: async function (id) {
-    let product = await this.findProducts({
-      where: { property: '_id', propResult: id },
+      return his;
     });
 
-    product = product[0];
-
-    if (!product.isSold && product.isRent) {
-      product.isRent = false;
-      product.isActive = true;
+    if (!product.firstStatusSecondHand) {
+      product.firstStatusSecondHand = product.isSecondHand;
     }
+
     await product.save();
     return product;
   },
@@ -130,9 +272,6 @@ module.exports = {
 
     product = product[0];
 
-    if (!product.isActive) {
-      throw new Error('Ürün boşta değildir.');
-    }
     product.isSold = true;
     product.isRent = false;
     product.isActive = false;
