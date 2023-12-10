@@ -3,8 +3,7 @@ const { productService } = require('../services');
 
 const { responseJSON, checkDateOrder, formatDate } = require('../utils');
 const status = require('http-status');
-const { v4: uuidv4, parse } = require('uuid');
-const { BSON, ObjectId } = require('bson');
+const { v4: uuidv4 } = require('uuid');
 
 async function createBooking(req, res, next) {
   const {
@@ -17,6 +16,7 @@ async function createBooking(req, res, next) {
     productDeliveryDate,
     productReturnDate,
     productName,
+    productSpecialCode,
   } = req.body;
 
   const { eventType, productTakeType } = req.query;
@@ -60,6 +60,8 @@ async function createBooking(req, res, next) {
         code: eventType,
         startDate: productDeliveryDate,
         endDate: productReturnDate,
+        isPackage,
+        productSpecialCode,
       });
     }
 

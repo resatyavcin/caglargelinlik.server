@@ -1,4 +1,3 @@
-const status = require('http-status');
 const jwt = require('jsonwebtoken');
 
 module.exports = {

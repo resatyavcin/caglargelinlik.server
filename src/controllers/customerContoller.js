@@ -26,6 +26,7 @@ async function createCustomer(req, res, next) {
 
 async function findCustomers(req, res, next) {
   const { customerId } = req.query;
+
   try {
     const customers = await customerService.findCustomers({
       id: customerId,

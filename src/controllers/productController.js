@@ -1,19 +1,39 @@
 const status = require('http-status');
 const { responseJSON } = require('../utils');
 const { productService } = require('../services');
+const productSchema = require('../models/Product');
 
 async function createProduct(req, res, next) {
-  const { code, name, isSecondHand } = req.body;
+  const { code, name, isSecondHand, specialCode } = req.body;
   try {
     const product = await productService.create({
       code,
       name,
       isSecondHand,
+      specialCode,
     });
 
     return res.status(201).json({
       result: product,
       status: responseJSON(status[201], status['201_MESSAGE']),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getProductOne(req, res, next) {
+  const { productId } = req.params;
+
+  if (!productId) {
+    throw new Error('productId giriniz');
+  }
+  try {
+    const products = await productSchema.findOne({ _id: productId });
+
+    return res.status(200).json({
+      result: products,
+      status: responseJSON(status[200], status['200_MESSAGE']),
     });
   } catch (error) {
     next(error);
@@ -59,7 +79,7 @@ async function getProductNames(req, res, next) {
 async function rentProduct(req, res, next) {
   try {
     const productCode = req.params.productCode;
-    const { productName } = req.query;
+    const { productName, productSpecialCode } = req.query;
 
     const { isPackage, startDate, endDate } = req.body;
 
@@ -69,6 +89,7 @@ async function rentProduct(req, res, next) {
       startDate,
       endDate,
       isPackage,
+      productSpecialCode,
     });
 
     res.status(200).json({
@@ -89,7 +110,31 @@ async function receivingTheRentedProductBack(req, res, next) {
 
     res.status(200).json({
       status: responseJSON(status[200], status['200_MESSAGE']),
-      result: updatedProduct,
+      result: {
+        data: updatedProduct,
+        message: 'Başarı ile ürün geri teslim alındı ve durumu güncellendi.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function receivingTheRentedProductBackCancel(req, res, next) {
+  try {
+    const booking = req.query.booking;
+    const updatedProduct =
+      await productService.receivingTheRentedProductBackCancel({
+        booking,
+      });
+
+    res.status(200).json({
+      status: responseJSON(status[200], status['200_MESSAGE']),
+      result: {
+        data: updatedProduct,
+        message:
+          'Başarı ile ürün geri teslim alma iptal edildi ve ürün durumu güncellendi.',
+      },
     });
   } catch (error) {
     next(error);
@@ -112,8 +157,14 @@ async function cancelRentProduct(req, res, next) {
 
 async function sellProduct(req, res, next) {
   try {
-    const productId = req.params.productId;
-    const updatedProduct = await productService.sellProduct(productId);
+    const productCode = req.params.productCode;
+    const productName = req.query.productName;
+    const date = req.body.date;
+    const updatedProduct = await productService.sellProduct({
+      productCode,
+      productName,
+      date,
+    });
 
     res.status(200).json({
       status: responseJSON(status[200], status['200_MESSAGE']),
@@ -126,8 +177,15 @@ async function sellProduct(req, res, next) {
 
 async function cancelSellProduct(req, res, next) {
   try {
-    const productId = req.params.productId;
-    const updatedProduct = await productService.cancelSellProduct(productId);
+    const productCode = req.params.productCode;
+    const productName = req.query.productName;
+    const booking = req.query.booking;
+
+    const updatedProduct = await productService.cancelSellProduct({
+      productCode,
+      productName,
+      booking,
+    });
 
     res.status(200).json({
       status: responseJSON(status[200], status['200_MESSAGE']),
@@ -142,9 +200,12 @@ async function deleteProduct(req, res, next) {
   const productId = req.params.productId;
 
   try {
-    const deletedProduct = await productService.delete({ id: productId });
+    const deletedProduct = await productService.delete({ productId });
     return res.status(200).json({
-      result: deletedProduct,
+      result: {
+        message: 'Ürün başarı ile silindi.',
+        product: deletedProduct,
+      },
       status: responseJSON(status[200], status['200_MESSAGE']),
     });
   } catch (error) {
@@ -162,4 +223,6 @@ module.exports = {
   cancelSellProduct,
   deleteProduct,
   getProductNames,
+  getProductOne,
+  receivingTheRentedProductBackCancel,
 };
