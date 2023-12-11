@@ -27,7 +27,15 @@ async function databaseConnection() {
   }
 }
 
-server.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
+server.use(
+  cors({
+    credentials: true,
+    origin: [
+      'http://localhost:3000',
+      'https://caglargelinlik-client.vercel.app',
+    ],
+  }),
+);
 
 server.use(express.json());
 server.use('/v1', app);
