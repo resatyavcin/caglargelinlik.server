@@ -12,7 +12,6 @@ async function createBooking(req, res, next) {
     primaryTrialDate,
     secondaryTrialDate,
     isPackage,
-    packageDetails = {},
     eventDate,
     productDeliveryDate,
     productReturnDate,
@@ -104,6 +103,17 @@ async function createBooking(req, res, next) {
     return res.status(201).json({
       result: { data: booking, message: 'Başarıyla kaydedildi' },
       status: responseJSON(status[201], status['201_MESSAGE']),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function cancelBooking(req, res, next) {
+  try {
+    return res.status(200).json({
+      result: '',
+      status: responseJSON(status[200], status['200_MESSAGE']),
     });
   } catch (error) {
     next(error);

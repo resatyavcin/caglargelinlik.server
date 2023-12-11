@@ -76,6 +76,25 @@ async function getProductNames(req, res, next) {
   }
 }
 
+async function getDisplayCodes(req, res, next) {
+  const { productCode } = req.params;
+  const { productName } = req.query;
+  try {
+    const products = await productSchema.aggregate([
+      { $match: { $and: [{ code: productCode }, { name: productName }] } },
+      { $group: { _id: '$specialCode' } },
+      { $project: { _id: 0, productName: '$_id' } },
+    ]);
+
+    return res.status(200).json({
+      result: products.map((prd) => prd.productName),
+      status: responseJSON(status[200], status['200_MESSAGE']),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function rentProduct(req, res, next) {
   try {
     const productCode = req.params.productCode;
@@ -227,4 +246,5 @@ module.exports = {
   getProductNames,
   getProductOne,
   receivingTheRentedProductBackCancel,
+  getDisplayCodes,
 };

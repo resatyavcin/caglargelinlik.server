@@ -5,6 +5,7 @@ const speakeasy = require('speakeasy');
 const qrCode = require('qrcode');
 
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 
 router.post('/generate-2fa-qr', async (req, res) => {
   try {
@@ -38,13 +39,17 @@ router.post('/', async (req, res) => {
       console.log(`Used key: ********`);
     }
 
-    const isVerify = speakeasy.totp.verify({
+    const isVerify = await speakeasy.totp.verify({
       secret: data,
       encoding: 'ascii',
       token,
     });
 
-    return res.send(isVerify);
+    const tokenc = jwt.sign({ isVerify }, process.env.JWT_SECRET_KEY, {
+      expiresIn: '1d',
+    });
+
+    return res.send({ data: isVerify ? tokenc : 'false' });
   } catch (error) {
     res.send(error);
   }
