@@ -34,7 +34,7 @@ module.exports = {
       query.$or.push({ [property]: propResult });
     }
 
-    const customers = await CustomerModel.find(query);
+    const customers = await CustomerModel.find(query).populate('paymentId');
 
     if (customers.length < 0) {
       throw new Error('Müşteri bulunamadı');

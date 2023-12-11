@@ -12,6 +12,11 @@ app.use('/verify', routes._2faRoutes);
 app.use('/auth', routes.userRoutes);
 
 app.use(
+  '/payments',
+  authMiddleware(['Admin', 'SalesConsultant']),
+  routes.paymentRoutes,
+);
+app.use(
   '/product',
   authMiddleware(['Admin', 'SalesConsultant']),
   routes.productRoutes,

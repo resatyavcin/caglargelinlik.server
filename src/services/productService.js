@@ -5,23 +5,6 @@ const { isDateRangeIntersection, findLatestProduct } = require('../utils');
 const uuid = require('uuid');
 const { v4: uuidv4 } = uuid;
 
-function generateUniqueString() {
-  // UUID oluştur
-  const uniqueId = uuidv4();
-
-  // Şu anki zamanı al
-  const currentTime = new Date();
-
-  // Zaman bilgisini stringe çevir ve ekleyerek benzersiz bir string oluştur
-  const uniqueString = `${uniqueId}_${currentTime
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace('.', '')
-    .slice(0, -5)}`;
-
-  return uniqueString;
-}
-
 module.exports = {
   create: async function ({ code, name, isSecondHand, specialCode }) {
     const product = new ProductModel({
@@ -31,6 +14,12 @@ module.exports = {
       firstStatusSecondHand: isSecondHand,
       specialCode,
     });
+
+    const isExist = await ProductModel.findOne({ specialCode });
+
+    if (isExist) {
+      throw new Error('Bu üründen bulunmaktadır. Başka özel kod giriniz.');
+    }
 
     return product.save();
   },
@@ -85,6 +74,7 @@ module.exports = {
     endDate,
     isPackage,
     productSpecialCode,
+    booking,
   }) {
     let currentProduct;
 
@@ -172,7 +162,7 @@ module.exports = {
 
     if (isPackage) {
       currentProduct.rentHistory.push({
-        booking: generateUniqueString(),
+        booking,
         isPackage: true,
         packageDetails: {
           departureDate: startDate,
@@ -183,7 +173,7 @@ module.exports = {
 
     if (!isPackage) {
       currentProduct.rentHistory.push({
-        booking: generateUniqueString(),
+        booking,
         isPackage: false,
         productDeliveryDate: startDate,
         productReturnDate: endDate,
@@ -326,24 +316,28 @@ module.exports = {
     return product;
   },
 
-  sellProduct: async function ({ productCode, productName, date }) {
-    const booking = generateUniqueString();
+  sellProduct: async function ({
+    productCode,
+    productName,
+    specialCode,
+    date,
+    booking,
+  }) {
     if (!date) {
       throw new Error('Tarih girilmelidir');
     }
-    let products = await ProductModel.find(
-      { code: productCode, name: productName, isSold: false },
+    let product = await ProductModel.findOne(
+      { code: productCode, name: productName, specialCode, isSold: false },
       'rentHistory',
     );
 
-    if (products.length === 0) {
+    if (!product) {
       throw new Error('Elimizde satılık bu ürün kalmamıştır.');
     }
-    const maxLateProduct = findLatestProduct(products);
 
-    const product = await ProductModel.findById(maxLateProduct);
+    const maxLateProduct = findLatestProduct({ product, latestDate: date });
 
-    if (moment(date).isSameOrBefore(maxLateProduct)) {
+    if (!maxLateProduct) {
       throw new Error(
         'Ürünlerin en geç bulunan kiralama hizmeti bitmeden, ürün satılamaz.',
       );

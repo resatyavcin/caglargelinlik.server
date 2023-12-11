@@ -65,48 +65,44 @@ function formatDate(date) {
   moment(date).format('YYYY-MM-DDTHH:mm:ss.SSS[Z]');
 }
 
-function findLatestProduct(arr) {
-  let latestProduct = null;
-  let latestDate = null;
+function findLatestProduct({ product, latestDate }) {
+  if (product.rentHistory && product.rentHistory.length > 0) {
+    let maxDate;
 
-  arr.forEach((product) => {
-    if (product.rentHistory && product.rentHistory.length > 0) {
-      let maxDate;
+    product.rentHistory.forEach((rent) => {
+      if (rent.isReturn) {
+        return;
+      }
 
-      product.rentHistory.forEach((rent) => {
-        if (rent.isReturn) {
+      if (rent.isPackage && rent.packageDetails) {
+        const departureDate = moment(rent.packageDetails.departureDate);
+        const arrivalDate = moment(rent.packageDetails.arrivalDate);
+
+        if (!departureDate.isValid() || !arrivalDate.isValid()) {
           return;
         }
 
-        if (rent.isPackage && rent.packageDetails) {
-          const departureDate = moment(rent.packageDetails.departureDate);
-          const arrivalDate = moment(rent.packageDetails.arrivalDate);
+        maxDate = moment.max(departureDate, arrivalDate);
+      } else {
+        const productDeliveryDate = moment(rent.productDeliveryDate);
+        const productReturnDate = moment(rent.productReturnDate);
 
-          if (!departureDate.isValid() || !arrivalDate.isValid()) {
-            return;
-          }
-
-          maxDate = moment.max(departureDate, arrivalDate);
-        } else {
-          const productDeliveryDate = moment(rent.productDeliveryDate);
-          const productReturnDate = moment(rent.productReturnDate);
-
-          if (!productDeliveryDate.isValid() || !productReturnDate.isValid()) {
-            return;
-          }
-
-          maxDate = moment.max(productDeliveryDate, productReturnDate);
+        if (!productDeliveryDate.isValid() || !productReturnDate.isValid()) {
+          return;
         }
 
-        if (!latestDate || maxDate.isBefore(latestDate)) {
-          latestDate = maxDate;
-          latestProduct = product._id;
-        }
-      });
+        maxDate = moment.max(productDeliveryDate, productReturnDate);
+      }
+    });
+
+    if (maxDate.isAfter(latestDate)) {
+      return false;
     }
-  });
 
-  return latestProduct;
+    return true;
+  }
+
+  return true;
 }
 
 module.exports = {

@@ -159,11 +159,13 @@ async function sellProduct(req, res, next) {
   try {
     const productCode = req.params.productCode;
     const productName = req.query.productName;
+    const specialCode = req.query.specialCode;
     const date = req.body.date;
     const updatedProduct = await productService.sellProduct({
       productCode,
       productName,
       date,
+      specialCode,
     });
 
     res.status(200).json({
