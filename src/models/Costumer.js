@@ -7,8 +7,7 @@ const schema = new mongoose.Schema(
     primaryPhone: { type: String, required: true },
     secondaryPhone: { type: String, required: true },
     address: { type: String, required: true },
-    paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
-    bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+    paymentId: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Payment' }],
   },
   { timestamps: true },
 );

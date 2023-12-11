@@ -8,8 +8,14 @@ app.get('/', (req, res) => {
   res.send('Health Check Done');
 });
 
+app.use('/verify', routes._2faRoutes);
 app.use('/auth', routes.userRoutes);
 
+app.use(
+  '/payments',
+  authMiddleware(['Admin', 'SalesConsultant']),
+  routes.paymentRoutes,
+);
 app.use(
   '/product',
   authMiddleware(['Admin', 'SalesConsultant']),

@@ -9,6 +9,12 @@ const schema = new mongoose.Schema(
       required: true,
     },
 
+    specialCode: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
     name: { type: String, required: true },
 
     firstStatusSecondHand: { type: Boolean, required: true },
@@ -16,6 +22,7 @@ const schema = new mongoose.Schema(
 
     isSold: { type: Boolean, required: true, default: false },
     soldDate: Date,
+    booking: { type: String },
 
     rentHistory: [
       {

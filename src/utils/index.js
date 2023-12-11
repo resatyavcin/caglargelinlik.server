@@ -65,6 +65,46 @@ function formatDate(date) {
   moment(date).format('YYYY-MM-DDTHH:mm:ss.SSS[Z]');
 }
 
+function findLatestProduct({ product, latestDate }) {
+  if (product.rentHistory && product.rentHistory.length > 0) {
+    let maxDate;
+
+    product.rentHistory.forEach((rent) => {
+      if (rent.isReturn) {
+        return;
+      }
+
+      if (rent.isPackage && rent.packageDetails) {
+        const departureDate = moment(rent.packageDetails.departureDate);
+        const arrivalDate = moment(rent.packageDetails.arrivalDate);
+
+        if (!departureDate.isValid() || !arrivalDate.isValid()) {
+          return;
+        }
+
+        maxDate = moment.max(departureDate, arrivalDate);
+      } else {
+        const productDeliveryDate = moment(rent.productDeliveryDate);
+        const productReturnDate = moment(rent.productReturnDate);
+
+        if (!productDeliveryDate.isValid() || !productReturnDate.isValid()) {
+          return;
+        }
+
+        maxDate = moment.max(productDeliveryDate, productReturnDate);
+      }
+    });
+
+    if (maxDate.isAfter(latestDate)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  return true;
+}
+
 module.exports = {
   responseJSON,
   ProductCodeEnum,
@@ -72,4 +112,5 @@ module.exports = {
   EventTypeEnum,
   formatDate,
   isDateRangeIntersection,
+  findLatestProduct,
 };

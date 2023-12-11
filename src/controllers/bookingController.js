@@ -1,10 +1,10 @@
 const BookingModel = require('../models/Booking');
-const { productService } = require('../services');
+const customerSchema = require('../models/Costumer');
+const { productService, paymentService } = require('../services');
 
 const { responseJSON, checkDateOrder, formatDate } = require('../utils');
 const status = require('http-status');
-const { v4: uuidv4, parse } = require('uuid');
-const { BSON, ObjectId } = require('bson');
+const { v4: uuidv4 } = require('uuid');
 
 async function createBooking(req, res, next) {
   const {
@@ -17,12 +17,15 @@ async function createBooking(req, res, next) {
     productDeliveryDate,
     productReturnDate,
     productName,
+    productSpecialCode,
+    totalAmount,
+    soldDate,
   } = req.body;
 
   const { eventType, productTakeType } = req.query;
 
   try {
-    const booking = new BookingModel({
+    const booking = {
       customer,
       primaryTrialDate,
       secondaryTrialDate,
@@ -31,27 +34,20 @@ async function createBooking(req, res, next) {
       eventDate,
       productDeliveryDate,
       productReturnDate,
-    });
+    };
 
     let product;
+    let payment;
     const uuid = uuidv4();
-    const { departureDate, arrivalDate } = packageDetails;
 
-    await checkDateOrder([
-      primaryTrialDate,
-      secondaryTrialDate,
-      eventDate,
-      productReturnDate,
-    ]);
-
-    await checkDateOrder([
-      primaryTrialDate,
-      secondaryTrialDate,
-      productDeliveryDate,
-      productReturnDate,
-    ]);
-
-    await checkDateOrder([departureDate, arrivalDate]);
+    if (productTakeType === 'rent') {
+      await checkDateOrder([
+        primaryTrialDate,
+        secondaryTrialDate,
+        productDeliveryDate,
+        productReturnDate,
+      ]);
+    }
 
     if (productTakeType === 'rent') {
       product = await productService.rentProduct({
@@ -60,17 +56,53 @@ async function createBooking(req, res, next) {
         code: eventType,
         startDate: productDeliveryDate,
         endDate: productReturnDate,
+        isPackage,
+        productSpecialCode,
+      });
+
+      payment = await paymentService.createInitialPayment({
+        amount: totalAmount,
+        booking: uuid,
+        customer,
+      });
+
+      await customerSchema.findByIdAndUpdate(customer, {
+        paymentId: payment?._id,
       });
     }
 
     if (productTakeType === 'sell') {
-      // await productService.sellProduct(product);
+      product = await productService.sellProduct({
+        booking: uuid,
+        productName,
+        specialCode: productSpecialCode,
+        productCode: eventType,
+        date: soldDate,
+      });
+
+      payment = await paymentService.createInitialPayment({
+        amount: totalAmount,
+        booking: uuid,
+        customer,
+      });
+
+      await customerSchema.findByIdAndUpdate(customer, {
+        $push: { paymentId: payment?._id },
+      });
     }
 
-    await BookingModel.create({ ...booking, product, extrauuid: uuid });
+    await BookingModel.create(
+      new BookingModel({
+        ...booking,
+        product: product?._id,
+        payment: payment?._id,
+        extrauuid: uuid,
+        isSell: productTakeType === 'sell',
+      }),
+    );
 
     return res.status(201).json({
-      result: booking,
+      result: { data: booking, message: 'Başarıyla kaydedildi' },
       status: responseJSON(status[201], status['201_MESSAGE']),
     });
   } catch (error) {
@@ -79,8 +111,9 @@ async function createBooking(req, res, next) {
 }
 
 async function findBookings(req, res, next) {
+  const { customerId } = req.params;
   try {
-    const booking = await BookingModel.find();
+    const booking = await BookingModel.find({ customer: customerId });
 
     return res.status(200).json({
       result: booking,
