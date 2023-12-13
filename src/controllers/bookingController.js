@@ -1,10 +1,18 @@
+const mongoose = require('mongoose');
+const bookingSchema = require('../models/Booking');
 const BookingModel = require('../models/Booking');
 const customerSchema = require('../models/Costumer');
+const paymentSchema = require('../models/Payment');
 const { productService, paymentService } = require('../services');
 
 const { responseJSON, checkDateOrder, formatDate } = require('../utils');
 const status = require('http-status');
 const { v4: uuidv4 } = require('uuid');
+const {
+  cancelSellProduct,
+  cancelRentProduct,
+} = require('../services/productService');
+const productSchema = require('../models/Product');
 
 async function createBooking(req, res, next) {
   const {
@@ -111,8 +119,69 @@ async function createBooking(req, res, next) {
 
 async function cancelBooking(req, res, next) {
   try {
+    if (!req.params.booking) {
+      throw new Error('Booking parametresi eksik.');
+    }
+
+    const booking = await bookingSchema.findOne({
+      extrauuid: req.params.booking,
+    });
+
+    if (!booking) {
+      throw new Error('Rezervasyon bulunamadı.');
+    }
+
+    await bookingSchema.deleteOne({
+      extrauuid: req.params.booking,
+    });
+
+    const payment = await paymentSchema.findOne({
+      booking: req.params.booking,
+    });
+    if (!payment) {
+      throw new Error('Ödeme bilgisi bulunamadı.');
+    }
+    await paymentSchema.deleteOne({
+      booking: req.params.booking,
+    });
+
+    const customer = await customerSchema.findOne({
+      _id: payment.customer,
+    });
+
+    if (!customer) {
+      throw new Error('Müşteri bulunamadı.');
+    }
+
+    updatedData = customer?.paymentId.filter(
+      (pay) => !pay?.equals(new mongoose.Types.ObjectId(payment?._id)),
+    );
+
+    customer['paymentId'] = updatedData;
+    customer.save();
+
+    const prd = await productSchema.findOne({ _id: booking.product });
+
+    if (!prd) {
+      throw new Error('Ürün bulunamadı.');
+    }
+
+    const rentHistoryItem = prd?.rentHistory.find(
+      (item) => item.booking === booking.extrauuid,
+    );
+
+    if (booking.isSell) {
+      await cancelSellProduct({
+        productCode: prd.code,
+        productName: prd.name,
+        booking: booking?.extrauuid,
+      });
+    } else {
+      await cancelRentProduct({ booking: rentHistoryItem?.booking });
+    }
+
     return res.status(200).json({
-      result: '',
+      result: 'Başarılı bir şekilde randevu iptal edilmiştir.',
       status: responseJSON(status[200], status['200_MESSAGE']),
     });
   } catch (error) {
@@ -134,4 +203,4 @@ async function findBookings(req, res, next) {
   }
 }
 
-module.exports = { createBooking, findBookings };
+module.exports = { createBooking, findBookings, cancelBooking };

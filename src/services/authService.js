@@ -36,7 +36,7 @@ module.exports = {
     }
 
     const token = jwt.sign(
-      { username: findUser.username },
+      { username: findUser.username, role: findUser.role },
       process.env.JWT_SECRET_KEY,
       { expiresIn: '1d' },
     );

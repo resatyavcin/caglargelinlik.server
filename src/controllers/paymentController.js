@@ -1,5 +1,10 @@
 const Payment = require('../models/Payment');
 const moment = require('moment');
+const { deletePaymentEntry } = require('../services/paymentService');
+const {
+  cancelSellProduct,
+  cancelRentProduct,
+} = require('../services/productService');
 
 const createPayment = async (req, res, next) => {
   const { paidBy, paidAmount } = req.body;
@@ -68,8 +73,21 @@ const isExistPaymentCustomer = async (req, res, next) => {
   }
 };
 
+const deletePayment = async (req, res, next) => {
+  try {
+    const updatedPayment = await deletePaymentEntry(
+      req.params.paymentId,
+      req.params.entryId,
+    );
+    res.json({ data: updatedPayment, message: 'Ödeme başarı ile güncellendi' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createPayment,
   getAllPayments,
   isExistPaymentCustomer,
+  deletePayment,
 };
