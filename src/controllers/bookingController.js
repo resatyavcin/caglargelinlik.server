@@ -5,7 +5,7 @@ const customerSchema = require('../models/Costumer');
 const paymentSchema = require('../models/Payment');
 const { productService, paymentService } = require('../services');
 
-const { responseJSON, checkDateOrder, formatDate } = require('../utils');
+const { responseJSON, checkDateOrder } = require('../utils');
 const status = require('http-status');
 const { v4: uuidv4 } = require('uuid');
 const {
@@ -13,6 +13,7 @@ const {
   cancelRentProduct,
 } = require('../services/productService');
 const productSchema = require('../models/Product');
+const moment = require('moment');
 
 async function createBooking(req, res, next) {
   const {
@@ -203,4 +204,87 @@ async function findBookings(req, res, next) {
   }
 }
 
-module.exports = { createBooking, findBookings, cancelBooking };
+async function calendar(req, res, next) {
+  try {
+    const bookings = await bookingSchema
+      .find()
+      .populate('product')
+      .populate('customer')
+      .exec();
+
+    const formatDate = (date) => moment(date).format('YYYY-MM-DD');
+    const result = bookings.map((booking) => {
+      let result = {
+        primaryTrialDate: booking.primaryTrialDate,
+        secondaryTrialDate: booking.secondaryTrialDate,
+        customer: booking.customer,
+        bookingExtrauuid: booking.extrauuid,
+      };
+
+      if (booking.product) {
+        const packageEntry = booking.product.rentHistory.find(
+          (entry) => entry.isPackage,
+        );
+        if (packageEntry) {
+          result.eventDate = booking.eventDate;
+          result.departureDate = packageEntry.packageDetails.departureDate;
+          result.arrivalDate = packageEntry.packageDetails.arrivalDate;
+        }
+      }
+
+      return result;
+    });
+
+    // Şimdi tarihleri gruplayın
+    const groupedByDate = {};
+
+    result.forEach((item) => {
+      const datesToCheck = [
+        {
+          date: formatDate(new Date(item.eventDate)),
+          name: 'eventDate',
+        },
+        {
+          date: formatDate(new Date(item.primaryTrialDate)),
+          name: 'primaryTrialDate',
+        },
+        {
+          date: formatDate(new Date(item.secondaryTrialDate)),
+          name: 'secondaryTrialDate',
+        },
+        {
+          date: formatDate(new Date(item.departureDate)),
+          name: 'departureDate',
+        },
+        {
+          date: formatDate(new Date(item.arrivalDate)),
+          name: 'arrivalDate',
+        },
+      ];
+
+      datesToCheck.forEach((dateObj) => {
+        const date = dateObj.date;
+        const name = dateObj.name;
+        if (date) {
+          if (!groupedByDate[date]) {
+            groupedByDate[date] = [];
+          }
+          groupedByDate[date].push({
+            name,
+            props: item[name],
+            customer: item['customer'],
+          });
+        }
+      });
+    });
+
+    return res.status(200).json({
+      result: groupedByDate,
+      status: responseJSON(status[200], status['200_MESSAGE']),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { createBooking, findBookings, cancelBooking, calendar };
