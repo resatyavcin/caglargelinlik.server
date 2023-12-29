@@ -3,7 +3,7 @@ const router = express.Router();
 
 const speakeasy = require('speakeasy');
 const qrCode = require('qrcode');
-
+const VerifyCode = require('../models/VerifyCode');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 
@@ -13,7 +13,9 @@ router.post('/generate-2fa-qr', async (req, res) => {
       name: 'caglargelinlik',
     });
 
-    fs.writeFileSync('key.txt', secret.ascii);
+    await VerifyCode.create({ code: secret.ascii });
+
+    // fs.writeFileSync('key.txt', secret.ascii);
 
     qrCode.toDataURL(secret.otpauth_url, (err, data) => {
       if (err) {
@@ -33,14 +35,12 @@ router.post('/', async (req, res) => {
   const { token } = req.body;
 
   try {
-    const data = fs.readFileSync('key.txt', 'utf8');
+    // const data = fs.readFileSync('key.txt', 'utf8');
 
-    if (data) {
-      console.log(`Used key: ********`);
-    }
+    const data = await VerifyCode.findOne({});
 
     const isVerify = await speakeasy.totp.verify({
-      secret: data,
+      secret: data.code,
       encoding: 'ascii',
       token,
     });
